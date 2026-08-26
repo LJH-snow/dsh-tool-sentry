@@ -1,0 +1,17 @@
+# dsh-tool-sentry 组合示例
+# 用法:在 dsh 的组合配置中引入本插件(示例片段,按你的部署组合调整)
+#
+# 方式一:从 GitHub 直接加载(无需发布 npm)
+- name: 'github:LJH-snow/dsh-tool-sentry'
+# 方式二:发布到 npm 后
+# - name: '@libai168/dsh-tool-sentry'
+  config:
+    # Sentry API token(必需;Sentry REST API 所有工具都需要认证)
+    token: 'sntrys_xxx'
+    # 默认组织 slug(可选;调用时仍可传 organization 覆盖)
+    organization: 'acme'
+    # Sentry API 根地址(可选,默认 https://sentry.io/api/0)
+    # 自托管 Sentry 示例:
+    # baseUrl: 'https://sentry.example.com/api/0'
+    # 请求超时(毫秒,可选,默认 15000)
+    # timeoutMs: 15000
