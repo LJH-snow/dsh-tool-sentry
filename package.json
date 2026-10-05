@@ -1,7 +1,7 @@
 {
   "name": "@libai168/dsh-tool-sentry",
   "description": "Sentry tools for DeepSeek Harness: projects, issues, events, releases, teams, and members",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",

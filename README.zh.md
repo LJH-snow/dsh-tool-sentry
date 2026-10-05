@@ -42,6 +42,8 @@ npm install /path/to/dsh-tool-sentry
 
 完整示例见 [examples/cordis.yml](examples/cordis.yml)。
 
+每次请求前都会校验目标地址。链路本地地址（`169.254.0.0/16`、`fe80::/10`，含其 IPv4-mapped 与 NAT64 形式）始终被拒绝——它们不可能是合法的 API 端点，且包含云元数据地址。内网自建端点默认保持可用。设置 `enforcePublicEndpoint: true` 可额外要求主机公网可达；该模式还会解析普通域名，并拒绝环回、私有、CGNAT、组播、保留以及全部 IANA 特殊用途地址段。
+
 ## 工具列表
 
 ### 只读

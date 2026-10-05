@@ -1,5 +1,7 @@
 /** Sentry REST client with injected fetch for testability. */
 
+import { EndpointSecurityError, guardEndpoint, normalizeBaseUrl, type EndpointPolicy, type LookupImpl } from './url-security.js'
+
 export interface SentryClientOptions {
   token?: string
   /** Optional default organization slug used when tools are called without an explicit organization. */
@@ -7,6 +9,10 @@ export interface SentryClientOptions {
   /** API base URL override (default https://sentry.io/api/0). */
   baseUrl?: string
   fetchImpl?: typeof fetch
+  /** Require a publicly reachable endpoint and resolve hostnames. Off by default so self-hosted deployments keep working. */
+  enforcePublicEndpoint?: boolean
+  /** Test-only DNS lookup override; production uses node:dns/promises. */
+  lookupImpl?: LookupImpl
   /** Request timeout in milliseconds. 0 disables the timeout. */
   timeoutMs?: number
 }
@@ -329,12 +335,21 @@ export class SentryClient {
   private readonly baseUrl: string
   private readonly fetchImpl: typeof fetch
   private readonly timeoutMs: number
+  private readonly endpointPolicy: EndpointPolicy
 
   constructor(private readonly options: SentryClientOptions = {}) {
     this.token = options.token ?? ''
-    this.baseUrl = (options.baseUrl ?? 'https://sentry.io/api/0').replace(/\/+$/, '')
+    try {
+      this.baseUrl = options.enforcePublicEndpoint === true
+        ? normalizeBaseUrl(options.baseUrl, 'https://sentry.io/api/0')
+        : (options.baseUrl ?? 'https://sentry.io/api/0').replace(/\/+$/, '')
+    } catch (error) {
+      if (error instanceof EndpointSecurityError) throw new SentryError(error.message, 400)
+      throw error
+    }
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch
     this.timeoutMs = options.timeoutMs ?? 15000
+    this.endpointPolicy = { enforcePublicEndpoint: options.enforcePublicEndpoint === true, lookupImpl: options.lookupImpl }
   }
 
   hasToken(): boolean {
@@ -504,7 +519,9 @@ export class SentryClient {
         authorization: `Bearer ${this.token}`,
       }
       if (init.body !== undefined && init.body !== null) headers['content-type'] = 'application/json'
-      const response = await this.fetchImpl(this.baseUrl + path, {
+          const blocked = await guardEndpoint(this.baseUrl + path, this.endpointPolicy)
+    if (blocked) throw new SentryError(blocked, 400)
+const response = await this.fetchImpl(this.baseUrl + path, {
         ...init,
         headers: { ...headers, ...init.headers },
         signal: controller.signal,

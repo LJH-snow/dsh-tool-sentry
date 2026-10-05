@@ -72,3 +72,13 @@ npm run build
 - `npm run typecheck` 无错误。
 - `npm test` 当前 18 例全绿，覆盖客户端路径/query/body、404 映射、无 token、默认组织、limit 钳制和工具渲染。
 - `npm run build` 输出 `lib/`，`exports.types` 指向生成的声明文件。
+
+## endpoint 安全校验
+
+`baseUrl` 默认行为不变（仅去尾斜杠），每次请求前额外做字面量链路本地校验：`169.254.0.0/16`、`fe80::/10`，以及 `::/96`、`::ffff:0:0/96`、`64:ff9b::/96` 中内嵌的 IPv4 形式。默认模式**不做 DNS 解析**，因此域名端点行为与之前完全一致。
+
+设置 `enforcePublicEndpoint: true` 后启用完整策略：`baseUrl` 规范化为 origin + 路径前缀（禁止 credentials/query/fragment），并对解析结果做 fail-closed 校验。
+
+两个模式的地址清单共享同一份 `src/url-security.ts`——该文件由 `.verify/gen-url-security-b.mjs` 从 A 类模板加 B 类策略层生成，网段清单与 A 类逐行一致（18 个 IPv4 + 16 个 IPv6，对齐 IANA 注册表），不得单独修改。`lookupImpl` 仅作测试注入点，不进入插件配置接口。
+
+自建部署（内网 GitLab / GitHub Enterprise / Jira DC / 自托管 Sentry）默认不受影响，这是本插件不默认开启公网限制的原因。
